@@ -1,0 +1,131 @@
+/* ============================================================
+   converter-image.css
+   Styles specific to image-based converters (PNG↔JPG, WebP,
+   HEIC, Image-related parts of Image↔PDF).
+   ============================================================ */
+
+/* --- SHARED LAYOUT FOR CONVERTER SECTIONS --- */
+
+/* Space between left (text) and right (card) columns is handled by Bootstrap's grid,
+   here мы чуть подправим отступы внутри. */
+.tool-section .card-glass {
+    margin-top: 0.75rem;
+}
+
+/* Slightly tighter spacing between labels and form fields inside converter cards */
+.tool-section .card-body .form-label {
+    margin-bottom: 0.25rem;
+}
+
+/* Smaller font for helper text inside converter cards */
+.tool-section .card-body p.small,
+.tool-section .card-body .small {
+    line-height: 1.4;
+}
+
+/* --- IMAGE CONVERTER-SPECIFIC ELEMENTS --- */
+
+/* Make range + label groups a bit more compact */
+.tool-section .form-range {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Align the "Fine-tuning" label nicely on small screens */
+@media (max-width: 575.98px) {
+    .tool-section .d-flex.justify-content-between.align-items-center {
+        align-items: flex-start !important;
+    }
+}
+
+/* Status + progress block should not jump layout too much */
+.conversion-status {
+    word-break: break-word;
+}
+
+/* Download link icon spacing */
+#download-link i {
+    font-size: 0.95rem;
+}
+
+/* --- IMAGE PREVIEW (optional, for future use) --- */
+
+/* If you later add a preview block (e.g. #image-preview), these styles are ready to use */
+.image-preview-wrapper {
+    margin-top: 0.75rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--color-border);
+    overflow: hidden;
+}
+
+body.theme-dark .image-preview-wrapper {
+    background: rgba(15, 23, 42, 0.85);
+}
+
+body.theme-light .image-preview-wrapper {
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.image-preview-header {
+    padding: 0.4rem 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.image-preview-body {
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.image-preview-body img {
+    max-height: 220px;
+    width: auto;
+    border-radius: 0.5rem;
+}
+
+/* --- MULTI-FILE LISTS (Image ↔ PDF) --- */
+
+#file-list {
+    max-height: 140px;
+    overflow-y: auto;
+    padding-top: 0.25rem;
+    border-top: 1px dashed var(--color-border);
+}
+
+#file-list ul {
+    list-style: none;
+    padding-left: 0;
+    margin-bottom: 0;
+}
+
+#file-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.78rem;
+    padding: 0.15rem 0;
+    color: var(--color-text-secondary);
+}
+
+/* Icon for each file (you can add <i class="bi bi-file-earmark"></i> in HTML/JS) */
+#file-list li i {
+    margin-right: 0.35rem;
+}
+
+/* --- SMALL MOBILE TWEAKS --- */
+
+@media (max-width: 767.98px) {
+    .tool-section .card-glass {
+        margin-top: 1.25rem;
+    }
+
+    .image-preview-body img {
+        max-height: 180px;
+    }
+}

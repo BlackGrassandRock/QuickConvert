@@ -1,0 +1,108 @@
+/* ============================================================
+   converter-pdf.css
+   Styles specific to Image ↔ PDF converter page
+   (image-pdf.html)
+   ============================================================ */
+
+/* --- LAYOUT TWEAKS FOR IMAGE ↔ PDF CARD --- */
+
+#image-pdf-converter .card-glass {
+    margin-top: 0.75rem;
+}
+
+/* Make the mode & format selectors feel grouped */
+#image-pdf-converter #conversion-mode,
+#image-pdf-converter #to-format,
+#image-pdf-converter #page-size {
+    font-size: 0.88rem;
+}
+
+/* Slightly smaller helper text */
+#image-pdf-converter .card-body p.small {
+    line-height: 1.4;
+}
+
+/* --- FILE SUMMARY BLOCK --- */
+
+#image-pdf-converter #file-info-wrapper .file-info {
+    font-size: 0.82rem;
+}
+
+/* File list under the summary */
+#image-pdf-converter #file-list {
+    margin-top: 0.35rem;
+    max-height: 150px;
+    overflow-y: auto;
+    padding-top: 0.35rem;
+    border-top: 1px dashed var(--color-border);
+}
+
+#image-pdf-converter #file-list ul {
+    list-style: none;
+    margin: 0;
+    padding-left: 0;
+}
+
+#image-pdf-converter #file-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.78rem;
+    padding: 0.15rem 0;
+    color: var(--color-text-secondary);
+}
+
+#image-pdf-converter #file-list li span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+#image-pdf-converter #file-list li i {
+    font-size: 0.86rem;
+}
+
+/* --- MODE-DEPENDENT OPTIONS (for future JS toggling) --- */
+
+/* Helper class you can toggle via JS to dim controls not relevant to current mode */
+.pdf-option-disabled {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+/* --- PAGE SIZE SELECTOR --- */
+
+#image-pdf-converter #page-size {
+    text-transform: none;
+}
+
+/* --- RANGE / QUALITY SLIDER --- */
+
+#image-pdf-converter #quality-range {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+/* --- STATUS / DOWNLOAD AREA --- */
+
+#image-pdf-converter .conversion-status {
+    word-break: break-word;
+}
+
+/* On this page, the download link might represent a single PDF
+   or e.g. a generated ZIP with images – style it a bit stronger. */
+#image-pdf-converter #download-link {
+    font-weight: 500;
+}
+
+/* --- MOBILE TWEAKS --- */
+
+@media (max-width: 767.98px) {
+    #image-pdf-converter .card-glass {
+        margin-top: 1.25rem;
+    }
+
+    #image-pdf-converter #file-list {
+        max-height: 120px;
+    }
+}

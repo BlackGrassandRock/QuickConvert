@@ -1,0 +1,320 @@
+/* ============================================================
+   base.css
+   Global reset, typography, variables, and theming foundation
+   ============================================================ */
+
+/* --- RESET & BASE TYPOGRAPHY --- */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Headings */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    color: var(--color-heading);
+    font-weight: 600;
+    line-height: 1.25;
+    margin-bottom: 0.5rem;
+}
+
+/* Links */
+a {
+    color: var(--color-accent);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+a:hover {
+    color: var(--color-accent-hover);
+}
+
+/* Images */
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Lists */
+ul,
+ol {
+    padding-left: 1.25rem;
+}
+
+/* --- THEME VARIABLES --- */
+
+/* Dark mode (default) */
+:root {
+    --color-bg: #0f172a;
+    --color-surface: #1e293b;
+    --color-card: #1e293b;
+    --color-border: rgba(148, 163, 184, 0.25);
+    --color-text: #e5e7eb;
+    --color-text-secondary: #94a3b8;
+    --color-heading: #f1f5f9;
+
+    --color-accent: #38bdf8;
+    --color-accent-hover: #7dd3fc;
+
+    --color-success: #4ade80;
+    --color-error: #f87171;
+    --color-warning: #fbbf24;
+}
+
+/* Light mode */
+body.theme-light {
+    --color-bg: #f8fafc;
+    --color-surface: #ffffff;
+    --color-card: #ffffff;
+    --color-border: rgba(100, 116, 139, 0.2);
+    --color-text: #1e293b;
+    --color-text-secondary: #475569;
+    --color-heading: #0f172a;
+
+    --color-accent: #2563eb;
+    --color-accent-hover: #1d4ed8;
+
+    --color-success: #16a34a;
+    --color-error: #dc2626;
+    --color-warning: #d97706;
+}
+
+/* --- SCROLLBAR (for WebKit browsers) --- */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+    background-color: var(--color-border);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-accent);
+}
+
+/* --- UTILITIES --- */
+
+/* Transitions for smooth theme changes */
+.transition-all {
+    transition: all 0.25s ease;
+}
+
+/* Muted text */
+.text-muted {
+    color: var(--color-text-secondary) !important;
+}
+
+/* Accent text */
+.text-accent {
+    color: var(--color-accent) !important;
+}
+
+/* Selection */
+::selection {
+    background-color: var(--color-accent);
+    color: #fff;
+}
+
+/* --- FORM ELEMENTS --- */
+input,
+select,
+textarea {
+    font-family: inherit;
+    font-size: 1rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-surface);
+    color: var(--color-text);
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--color-accent);
+    outline: none;
+}
+
+/* Buttons */
+button {
+    font-family: inherit;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* --- CODE / MONOSPACE --- */
+code,
+pre {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.9em;
+    color: var(--color-accent);
+}
+
+/* --- GENERAL LAYOUT HELPERS --- */
+.container {
+    max-width: 1140px;
+    margin-inline: auto;
+    padding-inline: 1rem;
+}
+
+/* Small cards and badges share border radius */
+.card,
+.badge-soft,
+.chip {
+    border-radius: 1rem;
+}
+
+/* Spacing helpers */
+.mt-6 {
+    margin-top: 4rem !important;
+}
+.mb-6 {
+    margin-bottom: 4rem !important;
+}
+
+/* --- RESPONSIVE TYPOGRAPHY --- */
+@media (max-width: 767.98px) {
+    body {
+        font-size: 15px;
+    }
+    h1 {
+        font-size: 1.6rem;
+    }
+    h2 {
+        font-size: 1.3rem;
+    }
+}
+
+/* --- PRINT STYLES (optional minimal) --- */
+@media print {
+    body {
+        background: #fff;
+        color: #000;
+    }
+    .navbar,
+    .footer,
+    .btn {
+        display: none !important;
+    }
+}
+
+/* --- COOKIE CONSENT BANNER --- */
+.cookie-banner {
+    position: fixed;
+    bottom: 1rem;
+    left: 1rem;
+    right: 1rem;
+    max-width: 960px;
+    margin: 0 auto;
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: 1rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    padding: 1rem 1.5rem;
+    display: none;
+    z-index: 2000;
+    animation: fadeIn 0.3s ease;
+}
+
+.cookie-content p {
+    font-size: 0.9rem;
+    color: var(--color-text);
+    margin-bottom: 0.75rem;
+}
+
+.cookie-content a {
+    text-decoration: underline;
+    font-size: 0.9rem;
+}
+
+.cookie-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* Mobile tweaks for cookie banner */
+@media (max-width: 575.98px) {
+    .cookie-banner {
+        left: 0.5rem;
+        right: 0.5rem;
+        padding: 0.9rem 1rem;
+    }
+
+    .cookie-content p {
+        font-size: 0.85rem;
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* === THEME-AWARE TEXT COLORS FOR BOOTSTRAP CLASSES === */
+
+/* Always use our theme variables instead of Bootstrap defaults */
+.text-secondary {
+    color: var(--color-text-secondary) !important;
+}
+
+/* text-light should simply match the normal text color for the current theme */
+.text-light {
+    color: var(--color-text) !important;
+}
+
+/* text-white override:
+   - In dark theme: keep it almost white
+   - In light theme: use the heading color to stay visible on white background
+*/
+body.theme-dark .text-white {
+    color: #f9fafb !important;
+}
+
+body.theme-light .text-white {
+    color: var(--color-heading) !important;
+}
+
+/* === THEME-AWARE BACKGROUNDS FOR BOOTSTRAP DARK CLASSES === */
+
+/* In light theme, avoid full black blocks from Bootstrap's bg-dark */
+body.theme-light .bg-dark {
+    background-color: var(--color-surface) !important;
+}
+
+/* Ensure readable text inside those elements in light theme */
+body.theme-light .bg-dark .text-light,
+body.theme-light .bg-dark {
+    color: var(--color-text) !important;
+}

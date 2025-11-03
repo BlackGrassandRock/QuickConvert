@@ -1,0 +1,66 @@
+{
+  "name": "QuickConvert",
+  "short_name": "QuickConvert",
+  "description": "Convert images (PNG, JPG, WebP, HEIC) and PDFs directly in your browser — fast, simple and private.",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "assets/icons/favicon-16x16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icons/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/img/logo.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "PNG ↔ JPG",
+      "short_name": "PNG↔JPG",
+      "description": "Convert PNG to JPG or vice versa",
+      "url": "/index.html#png-jpg",
+      "icons": [{ "src": "assets/icons/favicon-32x32.png", "sizes": "32x32", "type": "image/png" }]
+    },
+    {
+      "name": "WebP ↔ JPG / PNG",
+      "short_name": "WebP",
+      "description": "Convert WebP images easily",
+      "url": "/webp-converter.html",
+      "icons": [{ "src": "assets/icons/favicon-32x32.png", "sizes": "32x32", "type": "image/png" }]
+    },
+    {
+      "name": "HEIC ↔ JPG / PNG",
+      "short_name": "HEIC",
+      "description": "Convert HEIC/HEIF to JPG or PNG",
+      "url": "/heic-converter.html",
+      "icons": [{ "src": "assets/icons/favicon-32x32.png", "sizes": "32x32", "type": "image/png" }]
+    },
+    {
+      "name": "Image ↔ PDF",
+      "short_name": "Img↔PDF",
+      "description": "Convert images to PDF and back",
+      "url": "/image-pdf.html",
+      "icons": [{ "src": "assets/icons/favicon-32x32.png", "sizes": "32x32", "type": "image/png" }]
+    }
+  ]
+}

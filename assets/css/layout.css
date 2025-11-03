@@ -1,0 +1,241 @@
+/* ============================================================
+   layout.css
+   Global layout: navbar, hero, sections, footer, responsiveness
+   ============================================================ */
+
+
+/* --- NAVBAR --- */
+
+.navbar-blur {
+    position: sticky;
+    top: 0;
+    z-index: 1030; /* above content */
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--color-border);
+    transition:
+        background-color 0.25s ease,
+        border-color 0.25s ease,
+        box-shadow 0.25s ease,
+        transform 0.15s ease;
+}
+
+/* Цвета фона из темы */
+body.theme-dark .navbar-blur {
+    background: rgba(15, 23, 42, 0.9);
+}
+
+body.theme-light .navbar-blur {
+    background: rgba(248, 250, 252, 0.96);
+}
+
+/* Состояние при скролле — чуть сильнее фон и тень */
+.navbar-blur.navbar-scrolled {
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.35);
+    transform: translateY(-1px);
+}
+
+body.theme-light .navbar-blur.navbar-scrolled {
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+}
+
+/* Размеры и выравнивание внутри навбара */
+.navbar {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+/* Бренд — лёгкий градиентный текст */
+.navbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    background: linear-gradient(120deg, #38bdf8, #6366f1);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+body.theme-light .navbar-brand {
+    background: linear-gradient(120deg, #2563eb, #0ea5e9);
+}
+
+/* Активный пункт меню */
+.navbar-nav .nav-link {
+    position: relative;
+    font-size: 0.92rem;
+    padding-inline: 0.85rem;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    transition: color 0.2s ease;
+}
+
+.navbar-nav .nav-link:hover {
+    color: var(--color-heading);
+}
+
+/* Подчёркивание активного/hover пункта */
+.navbar-nav .nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0.85rem;
+    right: 0.85rem;
+    bottom: 0.15rem;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #38bdf8, #6366f1);
+    transform-origin: center;
+    transform: scaleX(0);
+    opacity: 0;
+    transition:
+        transform 0.2s ease,
+        opacity 0.2s ease;
+}
+
+.navbar-nav .nav-link:hover::after,
+.navbar-nav .nav-link.active::after {
+    transform: scaleX(1);
+    opacity: 1;
+}
+
+.navbar-nav .nav-link.active {
+    color: var(--color-accent);
+}
+
+/* Тогглер на мобиле — свой бургер, чтобы не ломаться при смене темы */
+.navbar-toggler {
+    border: none;
+    padding: 0.35rem 0.6rem;
+    border-radius: 999px;
+    transition:
+        background-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.navbar-toggler:hover {
+    background-color: rgba(148, 163, 184, 0.15);
+    box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.4);
+}
+
+.navbar-toggler-icon {
+    background-image: none; /* отключаем дефолтный bootstrap-svg */
+    position: relative;
+    width: 1.25rem;
+    height: 1.1rem;
+}
+
+.navbar-toggler-icon::before,
+.navbar-toggler-icon::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    border-radius: 999px;
+    background-color: var(--color-text);
+    transition:
+        background-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+/* Верхняя полоска + средняя через box-shadow */
+.navbar-toggler-icon::before {
+    top: 0.15rem;
+    box-shadow: 0 0.35rem 0 0 var(--color-text); /* это середина */
+}
+
+/* Нижняя полоска */
+.navbar-toggler-icon::after {
+    bottom: 0.15rem;
+}
+
+/* На hover — перекрашиваем в акцент */
+.navbar-toggler:hover .navbar-toggler-icon::before,
+.navbar-toggler:hover .navbar-toggler-icon::after {
+    background-color: var(--color-accent);
+    box-shadow: 0 0.35rem 0 0 var(--color-accent);
+}
+
+
+/* --- HERO / MAIN WRAPPER --- */
+
+.hero {
+    padding: 5rem 0 3.5rem;
+}
+
+/* Чуть меньше отступ для внутренних страниц и мобил */
+main.hero > .container {
+    padding-top: 0.5rem;
+}
+
+/* Секции с инструментами (PNG↔JPG, WebP, HEIC, Image↔PDF и т.п.) */
+.tool-section {
+    margin-bottom: 3.5rem;
+}
+
+/* Немного ограничим ширину текста в левой колонке */
+.tool-section .col-lg-5 {
+    max-width: 480px;
+}
+
+/* --- FOOTER --- */
+
+.footer {
+    margin-top: auto;
+    padding: 1.75rem 0 1.25rem;
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    border-top: 1px solid var(--color-border);
+    background-color: rgba(15, 23, 42, 0.9);
+}
+
+/* Светлый фон в светлой теме */
+body.theme-light .footer {
+    background-color: rgba(248, 250, 252, 0.96);
+}
+
+/* --- CARDS / CONTENT WIDTH --- */
+
+/* Чтобы карточки не прилипали к краям на очень больших экранах */
+main .container {
+    max-width: 1120px;
+}
+
+/* --- RESPONSIVE TWEAKS --- */
+
+@media (max-width: 991.98px) {
+    .hero {
+        padding-top: 4.5rem;
+        padding-bottom: 3rem;
+    }
+
+    .navbar-nav .nav-link {
+        padding-inline: 0.5rem;
+        padding-block: 0.35rem;
+    }
+
+    .tool-section {
+        margin-bottom: 3rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .hero {
+        padding-top: 4rem;
+        padding-bottom: 2.5rem;
+    }
+
+    .footer {
+        padding-top: 1.25rem;
+        padding-bottom: 1rem;
+    }
+}
+
+/* Небольшое центрирование текста в герое на очень узких экранах */
+@media (max-width: 480px) {
+    .tool-section .col-lg-5 {
+        text-align: left;
+    }
+}
