@@ -29,7 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const fileSizeEl = document.getElementById("file-size");
     const changeFileBtn = document.getElementById("change-file-btn");
 
-    const fromSelect = document.getElementById("from-format");
+    const fromSelect = document.getElementById("from-format"); // fixed to HEIC / HEIF in UI
     const toSelect = document.getElementById("to-format");
     const qualityRange = document.getElementById("quality-range");
     const compressSwitch = document.getElementById("compress-switch");
@@ -94,8 +94,18 @@ document.addEventListener("DOMContentLoaded", () => {
        -------------------------------------------------------- */
 
     function handleFileSelect(file) {
-        const allowedTypes = ["image/heic", "image/heif", "image/jpeg", "image/png"];
-        if (!allowedTypes.includes(file.type)) {
+        const mime = file.type || "";
+        const name = (file.name || "").toLowerCase();
+
+        const allowedMimeTypes = ["image/heic", "image/heif", "image/jpeg", "image/png"];
+        const mimeAllowed = mime && allowedMimeTypes.includes(mime);
+
+        const isHeicExt = /\.(heic|heif)$/.test(name);
+        const isJpegExt = /\.(jpe?g)$/.test(name);
+        const isPngExt = /\.png$/.test(name);
+        const extAllowed = isHeicExt || isJpegExt || isPngExt;
+
+        if (!mimeAllowed && !extAllowed) {
             showToast("Please select a HEIC, HEIF, JPG or PNG file.", "warning");
             setStatus(statusText, "Unsupported file type.", "error");
             return;
@@ -109,19 +119,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
         currentFile = file;
 
-        const detected = mimeToFormat(file.type);
-        if (detected && fromSelect && fromSelect.value === "auto") {
-            fromSelect.value = detected;
-        }
-
         if (fileNameEl) fileNameEl.textContent = file.name;
         if (fileSizeEl) fileSizeEl.textContent = "Size: " + formatBytes(file.size);
         if (fileInfoWrapper) fileInfoWrapper.classList.remove("d-none");
         if (uploadArea) uploadArea.classList.add("d-none");
+        if (downloadLink) downloadLink.classList.add("d-none");
 
         setStatus(statusText, "File selected. Ready to convert.", "muted");
 
-        if (!hasHeic2Any && (file.type === "image/heic" || file.type === "image/heif")) {
+        const isHeicFile =
+            mime === "image/heic" ||
+            mime === "image/heif" ||
+            (!mime && isHeicExt);
+
+        if (!hasHeic2Any && isHeicFile) {
             setTemporaryStatus(
                 statusText,
                 "HEIC library (heic2any) is not loaded. HEIC conversion will not work until you include it.",
@@ -158,18 +169,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        const fromValue = (fromSelect && fromSelect.value) || "auto";
-        const toValue = (toSelect && toSelect.value) || "jpg";
-
-        // Frontend demo only supports HEIC → JPG/PNG and JPG ↔ PNG
-        if ((fromValue === "jpg" || fromValue === "png") && toValue === "heic") {
-            const msg =
-                "JPG/PNG → HEIC is not supported in this frontend demo. " +
-                "You can implement it later on a backend service.";
-            showToast(msg, "warning");
-            setStatus(statusText, msg, "warning");
-            return;
-        }
+        const toValue = (toSelect && toSelect.value) || "jpg"; // "jpg" | "png"
 
         const rawQuality = qualityRange ? parseInt(qualityRange.value, 10) : 90;
         let quality = Number.isNaN(rawQuality) ? 0.9 : rawQuality / 100;
@@ -182,7 +182,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setStatus(statusText, "Converting file...", "muted");
 
         try {
-            const blob = await convertHeicOrImage(currentFile, fromValue, toValue, quality);
+            const blob = await convertHeicOrImage(currentFile, toValue, quality);
             if (!blob) {
                 throw new Error("Conversion failed.");
             }
@@ -199,6 +199,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 downloadLink.href = currentObjectUrl;
                 downloadLink.download = filename;
                 downloadLink.classList.remove("d-none");
+
+                // Auto-download after successful conversion
+                try {
+                    downloadLink.click();
+                } catch (e) {
+                    console.warn("Auto-download failed, fallback to manual link.", e);
+                }
             }
 
             if (lastConvLabel) {
@@ -231,7 +238,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (resetBtn) {
         resetBtn.addEventListener("click", () => {
             resetFileState();
-            if (fromSelect) fromSelect.value = "auto";
+            if (fromSelect) fromSelect.value = "heic"; // fixed in HTML
             if (toSelect) toSelect.value = "jpg";
             if (qualityRange) qualityRange.value = "90";
             if (compressSwitch) compressSwitch.checked = true;
@@ -245,26 +252,24 @@ document.addEventListener("DOMContentLoaded", () => {
        -------------------------------------------------------- */
 
     /**
-     * Convert HEIC/HEIF to JPG/PNG via heic2any (if available),
-     * or re-encode JPG/PNG via Canvas.
+     * Detect source format and convert accordingly:
+     * - HEIC/HEIF → JPG/PNG via heic2any
+     * - JPG/PNG   → JPG/PNG via Canvas
      * @param {File} file
-     * @param {string} fromFormat - "auto" | "heic" | "jpg" | "png"
-     * @param {string} toFormat   - "jpg" | "png"
-     * @param {number} quality    - 0..1
+     * @param {"jpg"|"png"} toFormat
+     * @param {number} quality
      * @returns {Promise<Blob>}
      */
-    function convertHeicOrImage(file, fromFormat, toFormat, quality) {
-        const mime = file.type;
-        const detected = mimeToFormat(mime);
-        const effectiveFrom = fromFormat === "auto" ? detected : fromFormat;
+    function convertHeicOrImage(file, toFormat, quality) {
+        const sourceFormat = detectFormatFromFile(file);
 
-        if (!effectiveFrom) {
+        if (!sourceFormat) {
             return Promise.reject(
                 new Error("Unsupported or unknown source format.")
             );
         }
 
-        if (effectiveFrom === "heic") {
+        if (sourceFormat === "heic") {
             if (!hasHeic2Any || !window.heic2any) {
                 return Promise.reject(
                     new Error(
@@ -279,16 +284,28 @@ document.addEventListener("DOMContentLoaded", () => {
                 blob: file,
                 toType: targetMime,
                 quality
-            }).then((result) => {
-                // heic2any may return a single Blob or an array of Blobs
-                if (Array.isArray(result)) {
-                    return result[0];
-                }
-                return result;
-            });
+            })
+                .then((result) => {
+                    if (Array.isArray(result)) {
+                        return result[0];
+                    }
+                    return result;
+                })
+                .catch((err) => {
+                    // Fallback when heic2any reports that image is already browser-readable
+                    if (
+                        err &&
+                        err.code === 1 &&
+                        typeof err.message === "string" &&
+                        /already browser readable/i.test(err.message)
+                    ) {
+                        return convertViaCanvas(file, toFormat, quality);
+                    }
+                    throw err;
+                });
         }
 
-        // For JPG/PNG → JPG/PNG we just use Canvas to optionally adjust quality
+        // JPG/PNG → JPG/PNG via Canvas
         return convertViaCanvas(file, toFormat, quality);
     }
 
@@ -296,7 +313,7 @@ document.addEventListener("DOMContentLoaded", () => {
      * Convert a regular image (JPG/PNG) via Canvas.
      * @param {File} file
      * @param {"jpg"|"png"} toFormat
-     * @param {number} quality  - 0..1
+     * @param {number} quality
      * @returns {Promise<Blob>}
      */
     function convertViaCanvas(file, toFormat, quality) {
@@ -318,8 +335,6 @@ document.addEventListener("DOMContentLoaded", () => {
                             return;
                         }
 
-                        // For JPG output, fill background with white to avoid
-                        // displaying black where the original had transparency.
                         if (toFormat === "jpg" || toFormat === "jpeg") {
                             ctx.fillStyle = "#ffffff";
                             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -359,11 +374,27 @@ document.addEventListener("DOMContentLoaded", () => {
        Utilities
        -------------------------------------------------------- */
 
-    function mimeToFormat(mime) {
-        if (!mime) return null;
-        if (mime === "image/heic" || mime === "image/heif") return "heic";
-        if (mime === "image/jpeg") return "jpg";
-        if (mime === "image/png") return "png";
+    // Detect format using MIME first, then extension as fallback
+    function detectFormatFromFile(file) {
+        const mime = file.type || "";
+        const name = (file.name || "").toLowerCase();
+
+        if (mime === "image/heic" || mime === "image/heif") {
+            return "heic";
+        }
+        if (mime === "image/jpeg") {
+            return "jpg";
+        }
+        if (mime === "image/png") {
+            return "png";
+        }
+
+        if (!mime) {
+            if (/\.(heic|heif)$/.test(name)) return "heic";
+            if (/\.(jpe?g)$/.test(name)) return "jpg";
+            if (/\.png$/.test(name)) return "png";
+        }
+
         return null;
     }
 
