@@ -129,7 +129,7 @@
                 <form id="converter-form">
                   <!-- File upload -->
                   <div class="mb-3">
-                    <label class="form-label small text-uppercase text-secondary">
+                    <label class="form-label small text-uppercase text-secondary" for="file-input">
                       Choose an image
                     </label>
 
@@ -180,10 +180,11 @@
                     </div>
 
                     <div class="col-md-2 d-flex justify-content-center">
-                      <button type="button" class="btn btn-outline-info btn-sm px-3 swap-btn d-flex align-items-center justify-content-center mt-3 mt-md-0" id="swap-formats">
+                      <button type="button" class="btn btn-outline-info btn-sm px-3 swap-btn d-flex align-items-center justify-content-center mt-3 mt-md-0" id="swap-formats" aria-label="Swap source and target formats">
                         <i class="bi bi-arrow-left-right me-1"></i>
                         <span class="d-none d-md-inline">Swap</span>
                       </button>
+
                     </div>
 
                     <div class="col-md-5">
@@ -347,10 +348,10 @@
   <!-- Cookie Consent Banner -->
   <div id="cookie-banner" class="cookie-banner">
     <div class="cookie-content">
-        <p>
-          We use cookies to analyze our traffic and, in the future, to personalize content and ads. By using this site, you agree to this.
-          <a href="privacy.html" id="cookie-policy-link">Learn more</a>
-        </p>
+      <p>
+        We use cookies to analyze our traffic and, in the future, to personalize content and ads. By using this site, you agree to this.
+        <a href="privacy.html" id="cookie-policy-link">Learn more</a>
+      </p>
       <div class="cookie-actions">
         <button id="accept-cookies" class="btn btn-sm btn-primary">Accept</button>
         <button id="decline-cookies" class="btn btn-sm btn-outline-secondary">Decline</button>
