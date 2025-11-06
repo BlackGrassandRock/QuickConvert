@@ -202,20 +202,29 @@
                     </div>
 
                     <div class="col-md-2 d-flex justify-content-center">
-                      <button type="button" class="btn btn-outline-info btn-sm px-3 py-2 fw-semibold d-flex align-items-center justify-content-center" id="swap-formats">
-                        <i class="bi bi-arrow-left-right me-1"></i>
-                        <span class="d-none d-md-inline">Swap</span>
-                      </button>
+                        <button
+                          type="button"
+                          class="btn btn-outline-info btn-sm px-3 py-2 fw-semibold d-flex align-items-center justify-content-center"
+                          id="swap-formats"
+                          aria-label="Swap source and target formats">
+                          <i class="bi bi-arrow-left-right me-1"></i>
+                          <span class="d-none d-md-inline">Swap</span>
+                        </button>
                     </div>
 
                     <div class="col-md-5">
-                      <label class="form-label small text-uppercase text-secondary" for="from-format">
-                        Convert to
-                      </label>
-                      <select class="form-select form-select-sm bg-dark text-light border-secondary" id="to-format">
-                        <option value="jpg" selected>JPG / JPEG</option>
-                        <option value="png">PNG</option>
-                      </select>
+                        <label
+                          class="form-label small text-uppercase text-secondary"
+                          for="to-format"
+                        >
+                          Convert to
+                        </label>
+                        <select
+                          class="form-select form-select-sm bg-dark text-light border-secondary"
+                          id="to-format">
+                          <option value="jpg" selected>JPG / JPEG</option>
+                          <option value="png">PNG</option>
+                        </select>
                     </div>
                   </div>
 
