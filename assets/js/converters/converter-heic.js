@@ -1,9 +1,9 @@
 // assets/js/converters/converter-heic.js
-// Handles HEIC → JPG/PNG conversion with lazy loading of heic2any
+// HEIC → JPG/PNG conversion with lazy loading of heic2any
 
 const HEIC2ANY_SRC = "assets/js/vendor/heic2any.min.js";
 
-// --- Lazy-load helper -------------------------------------------------------
+// Lazy-load heic2any ---------------------------------------------------------
 
 function loadScriptOnce(src) {
   return new Promise((resolve, reject) => {
@@ -40,7 +40,7 @@ async function ensureHeic2any() {
   return window.heic2any;
 }
 
-// --- DOM references ---------------------------------------------------------
+// DOM references -------------------------------------------------------------
 
 const uploadArea = document.getElementById("upload-area");
 const fileInput = document.getElementById("file-input");
@@ -64,10 +64,11 @@ const progressBar = document.getElementById("progress-bar");
 const downloadLink = document.getElementById("download-link");
 const lastConvLabel = document.getElementById("last-conv-label");
 
-// Internal state
+// Internal state -------------------------------------------------------------
+
 let selectedFile = null;
 
-// --- Helpers ----------------------------------------------------------------
+// Helpers --------------------------------------------------------------------
 
 function formatBytes(bytes) {
   if (bytes === 0) return "0 B";
@@ -78,10 +79,12 @@ function formatBytes(bytes) {
 }
 
 function setStatus(message) {
-  statusText.textContent = message;
+  if (statusText) statusText.textContent = message;
 }
 
 function toggleLoading(isLoading) {
+  if (!convertBtn || !convertSpinner || !progressWrapper) return;
+
   if (isLoading) {
     convertSpinner.classList.remove("d-none");
     convertBtn.disabled = true;
@@ -99,83 +102,99 @@ function getBaseName(filename) {
   return filename.slice(0, dotIdx);
 }
 
+// Prefer MIME type; only use extension if type is missing
 function isHeicFile(file) {
-  const name = file.name.toLowerCase();
-  const type = file.type.toLowerCase();
-  return (
-    type === "image/heic" ||
-    type === "image/heif" ||
-    name.endsWith(".heic") ||
-    name.endsWith(".heif")
-  );
+  const name = (file.name || "").toLowerCase();
+  const type = (file.type || "").toLowerCase();
+
+  if (type === "image/heic" || type === "image/heif") {
+    return true;
+  }
+
+  if (!type && (name.endsWith(".heic") || name.endsWith(".heif"))) {
+    return true;
+  }
+
+  return false;
 }
 
-// --- File selection UI ------------------------------------------------------
+// File selection UI ----------------------------------------------------------
 
 function handleFile(file) {
   selectedFile = file || null;
+
   if (!selectedFile) {
-    fileInfoWrapper.classList.add("d-none");
+    if (fileInfoWrapper) fileInfoWrapper.classList.add("d-none");
+    if (downloadLink) downloadLink.classList.add("d-none");
+    if (uploadArea) uploadArea.classList.remove("d-none");
     setStatus("No file selected yet.");
-    downloadLink.classList.add("d-none");
     return;
   }
 
-  fileNameEl.textContent = selectedFile.name;
-  fileSizeEl.textContent = formatBytes(selectedFile.size);
-  fileInfoWrapper.classList.remove("d-none");
+  if (fileNameEl) fileNameEl.textContent = selectedFile.name;
+  if (fileSizeEl) fileSizeEl.textContent = formatBytes(selectedFile.size);
+
+  // Hide upload area like on WebP page
+  if (uploadArea) uploadArea.classList.add("d-none");
+  if (fileInfoWrapper) fileInfoWrapper.classList.remove("d-none");
+
   setStatus("Ready to convert.");
-  downloadLink.classList.add("d-none");
+  if (downloadLink) downloadLink.classList.add("d-none");
 }
 
-uploadArea.addEventListener("click", () => fileInput.click());
+if (uploadArea && fileInput) {
+  uploadArea.addEventListener("click", () => fileInput.click());
 
-uploadArea.addEventListener("dragover", (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  uploadArea.classList.add("upload-area-active");
-});
+  uploadArea.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    uploadArea.classList.add("upload-area-active");
+  });
 
-uploadArea.addEventListener("dragleave", (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  uploadArea.classList.remove("upload-area-active");
-});
+  uploadArea.addEventListener("dragleave", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    uploadArea.classList.remove("upload-area-active");
+  });
 
-uploadArea.addEventListener("drop", (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  uploadArea.classList.remove("upload-area-active");
-  const files = e.dataTransfer.files;
-  if (files && files.length) {
-    handleFile(files[0]);
-  }
-});
+  uploadArea.addEventListener("drop", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    uploadArea.classList.remove("upload-area-active");
+    const files = e.dataTransfer.files;
+    if (files && files.length) {
+      handleFile(files[0]);
+    }
+  });
 
-fileInput.addEventListener("change", () => {
-  if (fileInput.files && fileInput.files.length) {
-    handleFile(fileInput.files[0]);
-  } else {
-    handleFile(null);
-  }
-});
+  fileInput.addEventListener("change", () => {
+    if (fileInput.files && fileInput.files.length) {
+      handleFile(fileInput.files[0]);
+    } else {
+      handleFile(null);
+    }
+  });
+}
 
-if (changeFileBtn) {
+// Change: clear and immediately reopen dialog (WebP-like UX)
+if (changeFileBtn && fileInput) {
   changeFileBtn.addEventListener("click", () => {
     fileInput.value = "";
     handleFile(null);
+    fileInput.click();
   });
 }
 
-if (resetBtn) {
+// Reset: full clear
+if (resetBtn && fileInput) {
   resetBtn.addEventListener("click", () => {
     fileInput.value = "";
     handleFile(null);
-    progressWrapper.classList.add("d-none");
+    if (progressWrapper) progressWrapper.classList.add("d-none");
   });
 }
 
-// --- Conversion -------------------------------------------------------------
+// Conversion helpers ---------------------------------------------------------
 
 async function convertHeicWithLib(file, targetMime, quality) {
   const heic2any = await ensureHeic2any();
@@ -233,22 +252,40 @@ async function runConversion() {
     throw new Error("Please select a file first.");
   }
 
-  const targetFormat = toFormatSelect.value === "png" ? "png" : "jpg";
+  const targetFormat = toFormatSelect && toFormatSelect.value === "png" ? "png" : "jpg";
   const targetMime = targetFormat === "png" ? "image/png" : "image/jpeg";
 
-  let quality = parseInt(qualityRange.value, 10) / 100;
-  if (!compressSwitch.checked) {
+  let quality = qualityRange ? parseInt(qualityRange.value, 10) / 100 : 0.9;
+  if (compressSwitch && !compressSwitch.checked) {
     quality = 1;
   }
 
   setStatus("Converting...");
-  progressBar.style.width = "20%";
+  if (progressBar) progressBar.style.width = "20%";
 
   let outputBlob;
 
   if (isHeicFile(selectedFile)) {
-    outputBlob = await convertHeicWithLib(selectedFile, targetMime, quality);
+    try {
+      // Try HEIC library first
+      outputBlob = await convertHeicWithLib(selectedFile, targetMime, quality);
+    } catch (err) {
+      console.warn("heic2any error, falling back to canvas:", err);
+      const msg = (err && err.message) || "";
+      if (
+        err &&
+        (err.code === 1 ||
+          msg.includes("already browser readable") ||
+          msg.toLowerCase().includes("already browser-readable"))
+      ) {
+        // File is actually JPEG/PNG inside → fall back to canvas
+        outputBlob = await convertImageViaCanvas(selectedFile, targetMime, quality);
+      } else {
+        throw err;
+      }
+    }
   } else {
+    // Non-HEIC: just re-encode via canvas
     outputBlob = await convertImageViaCanvas(selectedFile, targetMime, quality);
   }
 
@@ -256,22 +293,33 @@ async function runConversion() {
     throw new Error("Conversion did not produce a result.");
   }
 
-  progressBar.style.width = "80%";
+  if (progressBar) progressBar.style.width = "80%";
 
-  const base = getBaseName(selectedFile.name);
-  const outName = `${base}.${targetFormat}`;
-  const url = URL.createObjectURL(outputBlob);
+    const base = getBaseName(selectedFile.name);
+    const outName = `${base}.${targetFormat}`;
+    const url = URL.createObjectURL(outputBlob);
 
-  downloadLink.href = url;
-  downloadLink.download = outName;
-  downloadLink.classList.remove("d-none");
+    if (downloadLink) {
+      downloadLink.href = url;
+      downloadLink.download = outName;
+      downloadLink.classList.remove("d-none");
 
-  progressBar.style.width = "100%";
-  setStatus("Done. Click “Download result” to save.");
-  lastConvLabel.textContent = `Last: ${new Date().toLocaleTimeString()}`;
+      // Auto-download after successful conversion, keep link as fallback
+      try {
+        downloadLink.click();
+      } catch (e) {
+        console.warn("Auto-download failed, manual link is available.", e);
+      }
+    }
+
+    if (progressBar) progressBar.style.width = "100%";
+    setStatus("Done. File has been downloaded. You can use “Download result” again if needed.");
+    if (lastConvLabel) {
+      lastConvLabel.textContent = `Last: ${new Date().toLocaleTimeString()}`;
+    }
 }
 
-// --- Form submit ------------------------------------------------------------
+// Form submit ----------------------------------------------------------------
 
 if (convertForm) {
   convertForm.addEventListener("submit", async (e) => {
@@ -283,7 +331,7 @@ if (convertForm) {
     }
 
     toggleLoading(true);
-    progressBar.style.width = "10%";
+    if (progressBar) progressBar.style.width = "10%";
     setStatus("Preparing conversion...");
 
     try {
@@ -291,7 +339,7 @@ if (convertForm) {
     } catch (err) {
       console.error(err);
       setStatus(`Error: ${err.message || "conversion failed."}`);
-      downloadLink.classList.add("d-none");
+      if (downloadLink) downloadLink.classList.add("d-none");
     } finally {
       toggleLoading(false);
     }

@@ -1,385 +1,317 @@
-/* ============================================================
-   converter-png-jpg.js
-   Handles client-side PNG ↔ JPG conversion using <canvas>.
-   Dependencies:
-   - app-common-ui.js (status, progress, button helpers)
-   ============================================================ */
+// converter-png-jpg.js
+// Logic for PNG ↔ JPG on index.html
+// Uses only browser APIs (FileReader, Image, Canvas).
 
-import {
-    setStatus,
-    setTemporaryStatus,
-    toggleProgress,
-    setButtonLoading,
-    showToast
-} from "../app-common-ui.js";
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-document.addEventListener("DOMContentLoaded", () => {
-    const form = document.getElementById("converter-form");
-    if (!form) return; // Not on this page
+document.addEventListener('DOMContentLoaded', () => {
+  // Elements
+  const uploadArea        = $('#upload-area');
+  const fileInput         = $('#file-input');
+  const fileInfoWrapper   = $('#file-info-wrapper');
+  const fileNameEl        = $('#file-name');
+  const fileSizeEl        = $('#file-size');
 
-    const fileInput = document.getElementById("file-input");
-    const uploadArea = document.getElementById("upload-area");
-    const fileInfoWrapper = document.getElementById("file-info-wrapper");
-    const fileNameEl = document.getElementById("file-name");
-    const fileSizeEl = document.getElementById("file-size");
-    const changeFileBtn = document.getElementById("change-file-btn");
+  const fromFormat        = $('#from-format');
+  const toFormat          = $('#to-format');
+  const swapBtn           = $('#swap-formats');
 
-    const fromSelect = document.getElementById("from-format");
-    const toSelect = document.getElementById("to-format");
-    const qualityRange = document.getElementById("quality-range");
-    const compressSwitch = document.getElementById("compress-switch");
-    const swapBtn = document.getElementById("swap-formats");
+  const qualityRange      = $('#quality-range');
+  const compressSwitch    = $('#compress-switch');
 
-    const statusText = document.getElementById("status-text");
-    const progressWrapper = document.getElementById("progress-bar-wrapper");
-    const downloadLink = document.getElementById("download-link");
-    const downloadHint = document.getElementById("download-hint");
-    const convertBtn = document.getElementById("convert-btn");
-    const resetBtn = document.getElementById("reset-btn");
-    const lastConvLabel = document.getElementById("last-conv-label");
+  const convertForm       = $('#converter-form');
+  const convertBtn        = $('#convert-btn');
+  const convertSpinner    = $('#convert-spinner');
 
-    const MAX_SIZE = 20 * 1024 * 1024; // 20 MB
+  const resetBtn          = $('#reset-btn');
 
-    let currentFile = null;
-    let currentObjectUrl = null;
+  const statusText        = $('#status-text');
+  const progressWrapper   = $('#progress-bar-wrapper');
+  const progressBar       = $('#progress-bar');
+  const downloadHint      = $('#download-hint');
+  const downloadLink      = $('#download-link');
 
-    /* --------------------------------------------------------
-       Drag & Drop Handling
-       -------------------------------------------------------- */
+  const changeFileBtn     = $('#change-file-btn');
 
-    if (uploadArea && fileInput) {
-        uploadArea.addEventListener("click", () => {
-            fileInput.click();
-        });
+  const lastConvLabel     = $('#last-conv-label');
 
-        uploadArea.addEventListener("dragover", (e) => {
-            e.preventDefault();
-            uploadArea.classList.add("dragover");
-        });
+  let currentFile = null;
 
-        uploadArea.addEventListener("dragleave", (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove("dragover");
-        });
+  // Helpers
+  function humanFileSize(bytes) {
+    if (!bytes && bytes !== 0) return '';
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
 
-        uploadArea.addEventListener("drop", (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove("dragover");
+  function resetUI() {
+    currentFile = null;
+    fileInput.value = '';
+    fileInfoWrapper.classList.add('d-none');
+    uploadArea.classList.remove('dragover');
 
-            const files = e.dataTransfer && e.dataTransfer.files;
-            const file = files && files[0];
-            if (file) handleFileSelect(file);
-        });
+    fromFormat.value = 'auto';
+    toFormat.value = 'jpg';
+    qualityRange.value = 85;
+    compressSwitch.checked = true;
+
+    statusText.textContent = 'No file selected yet.';
+    progressWrapper.classList.add('d-none');
+    downloadHint.classList.add('d-none');
+    downloadLink.classList.add('d-none');
+    convertSpinner.classList.add('d-none');
+    convertBtn.disabled = false;
+  }
+
+  function showFileInfo(file) {
+    currentFile = file;
+    fileNameEl.textContent = file.name;
+    fileSizeEl.textContent = humanFileSize(file.size);
+    fileInfoWrapper.classList.remove('d-none');
+    statusText.textContent = `Selected: ${file.name}`;
+  }
+
+  function detectFormatFromFile(file) {
+    if (!file) return null;
+    if (file.type === 'image/png') return 'png';
+    if (file.type === 'image/jpeg') return 'jpg';
+    return null;
+  }
+
+  function handleFileSelected(file) {
+    const allowed = ['image/png', 'image/jpeg', 'image/jpg'];
+    if (!allowed.includes(file.type)) {
+      statusText.textContent =
+        'Unsupported file type — please choose PNG or JPG/JPEG.';
+      return;
     }
 
-    if (fileInput) {
-        fileInput.addEventListener("change", (e) => {
-            const files = e.target.files;
-            const file = files && files[0];
-            if (file) handleFileSelect(file);
-        });
+    showFileInfo(file);
+
+    // Auto-detect source format
+    const detected = detectFormatFromFile(file);
+    if (detected) {
+      fromFormat.value = detected;
+      // if target совпадает с source — переключим на противоположный
+      if (toFormat.value === detected) {
+        toFormat.value = detected === 'png' ? 'jpg' : 'png';
+      }
+    }
+  }
+
+  // Drag & drop + click
+  uploadArea.addEventListener('click', () => fileInput.click());
+
+  uploadArea.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      fileInput.click();
+    }
+  });
+
+  uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('dragover');
+  });
+
+  uploadArea.addEventListener('dragleave', () => {
+    uploadArea.classList.remove('dragover');
+  });
+
+  uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) handleFileSelected(f);
+  });
+
+  fileInput.addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (f) handleFileSelected(f);
+  });
+
+  // "Change" button
+  changeFileBtn.addEventListener('click', () => fileInput.click());
+
+  // Swap formats (как в webp-конвертере, но только для PNG/JPG)
+  swapBtn.addEventListener('click', () => {
+    const src = fromFormat.value;
+    const dst = toFormat.value;
+
+    // спец-логика, если source = auto
+    if (src === 'auto') {
+      if (dst === 'jpg') {
+        fromFormat.value = 'png';
+        toFormat.value = 'jpg';
+      } else if (dst === 'png') {
+        fromFormat.value = 'jpg';
+        toFormat.value = 'png';
+      } else {
+        // теоретически не должно сюда попасть, но пусть:
+        fromFormat.value = 'auto';
+        toFormat.value = 'jpg';
+      }
+      return;
     }
 
-    if (changeFileBtn && fileInput) {
-        changeFileBtn.addEventListener("click", () => {
-            resetFileState();
-            fileInput.click();
-        });
+    // обычный swap
+    fromFormat.value = dst === 'auto' ? 'auto' : dst;
+    toFormat.value = src === 'auto' ? 'auto' : src;
+  });
+
+  // Reset button
+  resetBtn.addEventListener('click', () => {
+    resetUI();
+  });
+
+  // Conversion submit
+  convertForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    if (!currentFile) {
+      statusText.textContent = 'Please choose a file first.';
+      return;
     }
 
-    /* --------------------------------------------------------
-       Swap button (PNG ↔ JPG)
-       -------------------------------------------------------- */
-
-    if (swapBtn && fromSelect && toSelect) {
-        swapBtn.addEventListener("click", (e) => {
-            e.preventDefault();
-
-            const currentTo = toSelect.value;
-
-            // Resolve effective "from" (auto -> detect from file if possible)
-            let effectiveFrom = fromSelect.value;
-            if (effectiveFrom === "auto") {
-                const detected =
-                    currentFile && currentFile.type
-                        ? mimeToFormat(currentFile.type)
-                        : null;
-                if (detected === "png" || detected === "jpg") {
-                    effectiveFrom = detected;
-                } else {
-                    effectiveFrom = "png";
-                }
-            }
-
-            fromSelect.value = currentTo;
-
-            if (effectiveFrom === "png" || effectiveFrom === "jpg") {
-                toSelect.value = effectiveFrom;
-            } else {
-                toSelect.value = currentTo === "jpg" ? "png" : "jpg";
-            }
-
-            setTemporaryStatus(statusText, "Formats swapped.", "muted", 1500);
-        });
+    const target = toFormat.value;
+    if (!['jpg', 'png'].includes(target)) {
+      statusText.textContent = 'Please choose a valid target format.';
+      return;
     }
 
-    /* --------------------------------------------------------
-       File Handling
-       -------------------------------------------------------- */
+    convertBtn.disabled = true;
+    convertSpinner.classList.remove('d-none');
+    progressWrapper.classList.remove('d-none');
+    progressBar.style.width = '100%';
+    downloadHint.classList.add('d-none');
+    downloadLink.classList.add('d-none');
+    statusText.textContent = 'Converting image...';
 
-    function handleFileSelect(file) {
-        const validTypes = ["image/png", "image/jpeg"];
+    try {
+      const result = await convertImageFile(currentFile, target);
 
-        if (!validTypes.includes(file.type)) {
-            showToast("Please select a PNG or JPG file.", "warning");
-            setStatus(statusText, "Unsupported file type.", "error");
-            return;
-        }
+      const blobUrl = URL.createObjectURL(result.blob);
+      const baseName = (currentFile && currentFile.name)
+        ? currentFile.name.replace(/\.[^/.]+$/, '')
+        : 'converted';
+      const ext = target === 'jpg' ? '.jpg' : '.png';
 
-        if (file.size > MAX_SIZE) {
-            showToast("Selected file is too large (max 20 MB).", "warning");
-            setStatus(statusText, "File size exceeds 20 MB limit.", "error");
-            return;
-        }
+      // Auto-download (как в webp-версии)
+      const autoLink = document.createElement('a');
+      autoLink.href = blobUrl;
+      autoLink.download = baseName + ext;
+      document.body.appendChild(autoLink);
+      autoLink.click();
+      document.body.removeChild(autoLink);
 
-        currentFile = file;
+      // Показать кнопку на всякий случай
+      downloadLink.href = blobUrl;
+      downloadLink.download = baseName + ext;
+      downloadLink.classList.remove('d-none');
+      downloadHint.classList.remove('d-none');
 
-        if (fromSelect && fromSelect.value === "auto") {
-            const detected = mimeToFormat(file.type);
-            if (detected) {
-                fromSelect.value = detected;
-            }
-        }
+      statusText.textContent = `Conversion ready — ${result.sizeHuman}`;
+      lastConvLabel.textContent = new Date().toLocaleString();
+    } catch (err) {
+      console.error(err);
+      statusText.textContent =
+        'Conversion failed: ' + (err && err.message ? err.message : String(err));
+    } finally {
+      convertSpinner.classList.add('d-none');
+      progressWrapper.classList.add('d-none');
+      convertBtn.disabled = false;
+    }
+  });
 
-        if (fileNameEl) fileNameEl.textContent = file.name;
-        if (fileSizeEl) fileSizeEl.textContent = "Size: " + formatBytes(file.size);
+  // Core converter
+  async function convertImageFile(file, targetFormat) {
+    const dataURL = await readFileAsDataURL(file);
+    const img = await loadImage(dataURL);
 
-        if (fileInfoWrapper) fileInfoWrapper.classList.remove("d-none");
-        if (uploadArea) uploadArea.classList.add("d-none");
+    const outW = img.naturalWidth;
+    const outH = img.naturalHeight;
 
-        if (downloadLink) {
-            downloadLink.classList.add("d-none");
-            downloadLink.removeAttribute("href");
-            downloadLink.removeAttribute("download");
-        }
-        if (downloadHint) {
-            downloadHint.classList.add("d-none");
-        }
+    const canvas = document.createElement('canvas');
+    canvas.width = outW;
+    canvas.height = outH;
 
-        setStatus(statusText, "File selected. Ready to convert.", "muted");
+    const ctx = canvas.getContext('2d');
+
+    // Для JPG заливаем фон белым (без прозрачности)
+    if (targetFormat === 'jpg') {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, outW, outH);
     }
 
-    function resetFileState() {
-        if (currentObjectUrl) {
-            URL.revokeObjectURL(currentObjectUrl);
-            currentObjectUrl = null;
-        }
+    ctx.drawImage(img, 0, 0, outW, outH);
 
-        currentFile = null;
-
-        if (fileInput) fileInput.value = "";
-        if (fileInfoWrapper) fileInfoWrapper.classList.add("d-none");
-        if (uploadArea) uploadArea.classList.remove("d-none");
-
-        if (downloadLink) {
-            downloadLink.classList.add("d-none");
-            downloadLink.removeAttribute("href");
-            downloadLink.removeAttribute("download");
-        }
-        if (downloadHint) {
-            downloadHint.classList.add("d-none");
-        }
-
-        setStatus(statusText, "No file selected yet.", "muted");
+    // Качество:
+    //  - если compress-switch включен: используем слайдер (0.4–1.0)
+    //  - если выключен: ставим максимальное качество (1.0)
+    let quality = 1.0;
+    if (compressSwitch.checked) {
+      const qVal = parseFloat(qualityRange.value) || 85;
+      quality = Math.min(Math.max(qVal / 100, 0.4), 1.0);
     }
 
-    /* --------------------------------------------------------
-       Form submit / conversion
-       -------------------------------------------------------- */
+    const mime = targetFormat === 'jpg' ? 'image/jpeg' : 'image/png';
 
-    form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        if (!currentFile) {
-            showToast("Please select a file first.", "warning");
-            return;
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob((b) => {
+        if (!b) {
+          reject(new Error('Failed to generate output file.'));
+          return;
         }
-
-        const toFormat = (toSelect && toSelect.value) || "jpg";
-
-        const rawQuality = qualityRange ? parseInt(qualityRange.value, 10) : 85;
-        let quality = Number.isNaN(rawQuality) ? 0.85 : rawQuality / 100;
-
-        if (compressSwitch && !compressSwitch.checked) {
-            quality = Math.max(quality, 0.95);
-        }
-
-        setButtonLoading(convertBtn, true, "Converting...");
-        toggleProgress(progressWrapper, true);
-        setStatus(statusText, "Converting...", "muted");
-
-        try {
-            const blob = await convertImage(currentFile, toFormat, quality);
-            if (!blob) {
-                throw new Error("Conversion failed.");
-            }
-
-            if (currentObjectUrl) {
-                URL.revokeObjectURL(currentObjectUrl);
-            }
-            currentObjectUrl = URL.createObjectURL(blob);
-
-            const ext = toFormat === "png" ? "png" : "jpg";
-            const filename = generateDownloadName(currentFile.name, ext);
-
-            if (downloadLink) {
-                downloadLink.href = currentObjectUrl;
-                downloadLink.download = filename;
-                downloadLink.classList.remove("d-none");
-            }
-            if (downloadHint) {
-                downloadHint.classList.remove("d-none");
-            }
-
-            // Trigger automatic download once
-            try {
-                if (downloadLink) {
-                    downloadLink.click();
-                }
-            } catch {
-                // ignore failures, user still has the button
-            }
-
-            if (lastConvLabel) {
-                const now = new Date();
-                const timeStr = now.toLocaleTimeString("en-US", {
-                    hour: "2-digit",
-                    minute: "2-digit"
-                });
-                lastConvLabel.textContent = "Last conversion: " + timeStr;
-            }
-
-            setStatus(statusText, "Conversion successful!", "success");
-            showToast("File converted successfully.", "success");
-        } catch (err) {
-            console.error(err);
-            const message =
-                err && err.message ? err.message : "Error during conversion.";
-            setStatus(statusText, message, "error");
-            showToast("Conversion failed.", "error");
-        } finally {
-            toggleProgress(progressWrapper, false);
-            setButtonLoading(convertBtn, false);
-        }
+        resolve(b);
+      }, mime, targetFormat === 'jpg' ? quality : undefined);
+      // для PNG качество обычно игнорируется, поэтому передаём только для JPG
     });
 
-    if (resetBtn) {
-        resetBtn.addEventListener("click", () => {
-            resetFileState();
-            if (fromSelect) fromSelect.value = "auto";
-            if (toSelect) toSelect.value = "jpg";
-            if (qualityRange) qualityRange.value = "85";
-            if (compressSwitch) compressSwitch.checked = true;
+    return {
+      blob,
+      size: blob.size,
+      sizeHuman: humanFileSize(blob.size),
+    };
+  }
 
-            setTemporaryStatus(statusText, "Form reset.", "muted", 2000);
-        });
+  // Small helpers
+  function readFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(fr.result);
+      fr.onerror = () => reject(fr.error || new Error('Failed to read file.'));
+      fr.readAsDataURL(file);
+    });
+  }
+
+  function loadImage(dataURL) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('Invalid image data.'));
+      img.src = dataURL;
+    });
+  }
+
+  // Keyboard accessibility на блоке инфы о файле (Enter = Change)
+  fileInfoWrapper.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      changeFileBtn.click();
     }
+  });
 
-    /* --------------------------------------------------------
-       Core conversion using <canvas>
-       -------------------------------------------------------- */
+  // Init
+  resetUI();
 
-    /**
-     * Convert PNG/JPG using Canvas re-encoding.
-     * @param {File} file
-     * @param {"png"|"jpg"|"jpeg"} toFormat
-     * @param {number} quality 0..1
-     * @returns {Promise<Blob>}
-     */
-    function convertImage(file, toFormat, quality = 0.85) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-
-            reader.onerror = () => reject(new Error("Failed to read file."));
-            reader.onload = () => {
-                const img = new Image();
-                img.onload = () => {
-                    try {
-                        const canvas = document.createElement("canvas");
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-
-                        const ctx = canvas.getContext("2d");
-                        if (!ctx) {
-                            reject(new Error("Canvas is not supported in this browser."));
-                            return;
-                        }
-
-                        if (toFormat === "jpg" || toFormat === "jpeg") {
-                            ctx.fillStyle = "#ffffff";
-                            ctx.fillRect(0, 0, canvas.width, canvas.height);
-                        }
-
-                        ctx.drawImage(img, 0, 0);
-
-                        const mimeType =
-                            toFormat === "png" ? "image/png" : "image/jpeg";
-
-                        canvas.toBlob(
-                            (blob) => {
-                                if (!blob) {
-                                    reject(
-                                        new Error("Failed to generate output image.")
-                                    );
-                                    return;
-                                }
-                                resolve(blob);
-                            },
-                            mimeType,
-                            quality
-                        );
-                    } catch (err) {
-                        reject(err);
-                    }
-                };
-                img.onerror = () =>
-                    reject(
-                        new Error(
-                            "Failed to decode image. Unsupported or corrupted file."
-                        )
-                    );
-                img.src = reader.result;
-            };
-
-            reader.readAsDataURL(file);
-        });
-    }
-
-    /* --------------------------------------------------------
-       Utilities
-       -------------------------------------------------------- */
-
-    function mimeToFormat(mime) {
-        if (!mime) return null;
-        if (mime === "image/png") return "png";
-        if (mime === "image/jpeg") return "jpg";
-        return null;
-    }
-
-    function formatBytes(bytes, decimals = 1) {
-        if (!bytes) return "0 B";
-        const k = 1024;
-        const dm = decimals < 0 ? 0 : decimals;
-        const sizes = ["B", "KB", "MB", "GB", "TB"];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
-    }
-
-    function generateDownloadName(original, newExt) {
-        const base = original.replace(/\.[^/.]+$/, "");
-        return `${base}-converted.${newExt}`;
-    }
-
-    // Initial status
-    setStatus(statusText, "No file selected yet.", "muted");
+  // Экспорт для дебага (по желанию)
+  window.quickconvertPngJpg = {
+    resetUI,
+    convertImageFile,
+  };
 });
