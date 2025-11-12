@@ -318,3 +318,29 @@ body.theme-light .bg-dark .text-light,
 body.theme-light .bg-dark {
     color: var(--color-text) !important;
 }
+
+/* === Adaptive reorder for mobile (buttons above quality) === */
+@media (max-width: 767.98px) {
+  #converter-form {
+    display: flex;
+    flex-direction: column;
+  }
+
+  #converter-form .buttons-block {
+    order: 2;
+  }
+
+  #converter-form .quality-block {
+    order: 3;
+  }
+}
+
+@media (min-width: 768px) {
+  #converter-form .buttons-block {
+    order: 3;
+  }
+
+  #converter-form .quality-block {
+    order: 2;
+  }
+}
